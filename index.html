@@ -1109,6 +1109,70 @@
     </div>
 </div>
 
+<div class="validation-modal" id="filenameModal">
+    <div class="validation-content" style="max-width: 600px;">
+        <h2>💾 Save Inspection Report</h2>
+        <div style="margin: 1.5rem 0;">
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">Filename:</label>
+                <input type="text" id="exportFilename" style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem; font-family: 'Courier New', monospace;" placeholder="Enter filename...">
+                <div style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+                    <strong>Format:</strong> Excel Workbook (.xlsx)
+                </div>
+            </div>
+            <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem;">
+                <div style="font-size: 0.875rem; color: #374151; margin-bottom: 0.5rem;"><strong>📊 Export Summary:</strong></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.875rem;">
+                    <div><strong>Transformer ID:</strong> <span id="exportSummaryId">-</span></div>
+                    <div><strong>Date:</strong> <span id="exportSummaryDate">-</span></div>
+                    <div><strong>Inspector:</strong> <span id="exportSummaryInspector">-</span></div>
+                    <div><strong>Location:</strong> <span id="exportSummaryLocation">-</span></div>
+                    <div><strong>Total Photos:</strong> <span id="exportSummaryPhotos">0</span></div>
+                    <div><strong>Completion:</strong> <span id="exportSummaryCompletion">0%</span></div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 0.375rem; font-size: 0.875rem;">
+                <strong>💡 Tip:</strong> The file will be saved to your browser's default download location. You can change this in your browser settings.
+            </div>
+        </div>
+        <div class="validation-buttons">
+            <button class="cancel-btn" onclick="closeFilenameModal()">Cancel</button>
+            <button class="proceed-btn" onclick="confirmExport()">💾 Save File</button>
+        </div>
+    </div>
+</div>
+
+<div class="validation-modal" id="jsonFilenameModal">
+    <div class="validation-content" style="max-width: 600px;">
+        <h2>💾 Save Inspection Data (JSON)</h2>
+        <div style="margin: 1.5rem 0;">
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">Filename:</label>
+                <input type="text" id="jsonFilename" style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem; font-family: 'Courier New', monospace;" placeholder="Enter filename...">
+                <div style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+                    <strong>Format:</strong> JSON Data File (.json)
+                </div>
+            </div>
+            <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem;">
+                <div style="font-size: 0.875rem; color: #374151; margin-bottom: 0.5rem;"><strong>📋 Data Summary:</strong></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.875rem;">
+                    <div><strong>Transformer ID:</strong> <span id="jsonSummaryId">-</span></div>
+                    <div><strong>Date:</strong> <span id="jsonSummaryDate">-</span></div>
+                    <div><strong>Location:</strong> <span id="jsonSummaryLocation">-</span></div>
+                    <div><strong>Total Photos:</strong> <span id="jsonSummaryPhotos">0</span></div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 0.375rem; font-size: 0.875rem;">
+                <strong>ℹ️ Note:</strong> JSON format preserves all data including photos (as base64) and can be loaded back into this form.
+            </div>
+        </div>
+        <div class="validation-buttons">
+            <button class="cancel-btn" onclick="closeJsonFilenameModal()">Cancel</button>
+            <button class="proceed-btn" onclick="confirmJsonExport()">💾 Save JSON</button>
+        </div>
+    </div>
+</div>
+
 <div class="validation-modal" id="photoDbModal">
     <div class="validation-content" style="max-width: 800px;">
         <h2>📷 Photo Database</h2>
@@ -2421,6 +2485,68 @@ function exportPhotoDatabase() {
 }
 
 function saveDataToJSON() {
+    showJsonFilenameModal();
+}
+
+function showJsonFilenameModal() {
+    const data = getFormData();
+    
+    // Generate default filename
+    const transformerId = data.info.transformerId || 'Unknown';
+    const location = data.info.location ? '_' + data.info.location.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20) : '';
+    const date = data.info.date || new Date().toISOString().split('T')[0];
+    const defaultFilename = `Inspection${location}_${transformerId}_${date}.json`;
+    
+    // Set filename
+    document.getElementById('jsonFilename').value = defaultFilename;
+    
+    // Populate summary
+    document.getElementById('jsonSummaryId').textContent = data.info.transformerId || '-';
+    document.getElementById('jsonSummaryDate').textContent = data.info.date || '-';
+    document.getElementById('jsonSummaryLocation').textContent = data.info.location || '-';
+    document.getElementById('jsonSummaryPhotos').textContent = photoDatabase.length;
+    
+    // Show modal
+    document.getElementById('jsonFilenameModal').classList.add('active');
+    
+    // Focus and select filename for easy editing
+    setTimeout(() => {
+        const filenameInput = document.getElementById('jsonFilename');
+        filenameInput.focus();
+        // Select just the filename part (before .json)
+        const extensionIndex = filenameInput.value.lastIndexOf('.json');
+        if (extensionIndex > 0) {
+            filenameInput.setSelectionRange(0, extensionIndex);
+        }
+    }, 100);
+}
+
+function closeJsonFilenameModal() {
+    document.getElementById('jsonFilenameModal').classList.remove('active');
+}
+
+function confirmJsonExport() {
+    closeJsonFilenameModal();
+    
+    // Get custom filename
+    let filename = document.getElementById('jsonFilename').value.trim();
+    
+    // Ensure .json extension
+    if (!filename.toLowerCase().endsWith('.json')) {
+        filename += '.json';
+    }
+    
+    // Validate filename
+    if (!filename || filename === '.json') {
+        showAlert('Please enter a valid filename', 'error');
+        showJsonFilenameModal();
+        return;
+    }
+    
+    executeJsonSave(filename);
+}
+
+function executeJsonSave(filename) {
     try {
         const data = getFormData();
         const jsonString = JSON.stringify(data, null, 2);
@@ -2428,16 +2554,20 @@ function saveDataToJSON() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         
-        const location = (document.getElementById('location').value || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
-        const transformerId = (document.getElementById('transformerId').value || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
-        const date = document.getElementById('date').value || new Date().toISOString().split('T')[0];
         link.href = url;
-        link.download = `Inspection_${location}_${transformerId}_${date}.json`;
+        link.download = filename;
+        document.body.appendChild(link);
         link.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(link);
         
-        showAlert('Inspection data saved successfully', 'success');
+        // Clean up
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 100);
+        
+        showAlert('Inspection data saved successfully! Check your Downloads folder.', 'success');
     } catch (err) {
+        console.error('JSON save error:', err);
         showAlert('Error saving data: ' + err.message, 'error');
     }
 }
@@ -2712,8 +2842,70 @@ function closeValidation() {
 
 function proceedWithExport() {
     closeValidation();
-    exportToExcel();
+    showFilenameModal();
 }
+
+function showFilenameModal() {
+    const data = getFormData();
+    const validation = validateFormData();
+    
+    // Generate default filename
+    const transformerId = data.info.transformerId || 'report';
+    const date = data.info.date || new Date().toISOString().split('T')[0];
+    const location = data.info.location ? '_' + data.info.location.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20) : '';
+    const defaultFilename = `Transformer_Inspection_${transformerId}${location}_${date}_v0.77.xlsx`;
+    
+    // Set filename
+    document.getElementById('exportFilename').value = defaultFilename;
+    
+    // Populate summary
+    document.getElementById('exportSummaryId').textContent = data.info.transformerId || '-';
+    document.getElementById('exportSummaryDate').textContent = data.info.date || '-';
+    document.getElementById('exportSummaryInspector').textContent = data.info.inspector || '-';
+    document.getElementById('exportSummaryLocation').textContent = data.info.location || '-';
+    document.getElementById('exportSummaryPhotos').textContent = photoDatabase.length;
+    document.getElementById('exportSummaryCompletion').textContent = validation.completionRate + '%';
+    
+    // Show modal
+    document.getElementById('filenameModal').classList.add('active');
+    
+    // Focus and select filename for easy editing
+    setTimeout(() => {
+        const filenameInput = document.getElementById('exportFilename');
+        filenameInput.focus();
+        // Select just the filename part (before .xlsx)
+        const extensionIndex = filenameInput.value.lastIndexOf('.xlsx');
+        if (extensionIndex > 0) {
+            filenameInput.setSelectionRange(0, extensionIndex);
+        }
+    }, 100);
+}
+
+function closeFilenameModal() {
+    document.getElementById('filenameModal').classList.remove('active');
+}
+
+function confirmExport() {
+    closeFilenameModal();
+    
+    // Get custom filename
+    let filename = document.getElementById('exportFilename').value.trim();
+    
+    // Ensure .xlsx extension
+    if (!filename.toLowerCase().endsWith('.xlsx')) {
+        filename += '.xlsx';
+    }
+    
+    // Validate filename
+    if (!filename || filename === '.xlsx') {
+        showAlert('Please enter a valid filename', 'error');
+        showFilenameModal();
+        return;
+    }
+    
+    exportToExcel(filename);
+}
+
 
 function showSpinner() {
     document.getElementById('spinner').style.display = 'block';
@@ -2730,7 +2922,7 @@ function showAlert(msg, type='error') {
     setTimeout(() => alert.style.display = 'none', 5000);
 }
 
-async function exportToExcel() {
+async function exportToExcel(filename) {
     showSpinner();
     
     try {
@@ -2842,11 +3034,12 @@ async function exportToExcel() {
         
         XLSX.utils.book_append_sheet(wb, wsPhotos, 'Photo Database');
         
-        const filename = `Transformer_Inspection_${data.info.transformerId || 'report'}_${data.info.date || 'nodate'}_v0.61.xlsx`;
-        XLSX.writeFile(wb, filename);
+        // Use provided filename or generate default
+        const finalFilename = filename || `Transformer_Inspection_${data.info.transformerId || 'report'}_${data.info.date || 'nodate'}_v0.77.xlsx`;
+        XLSX.writeFile(wb, finalFilename);
         
         hideSpinner();
-        showAlert('Excel file exported successfully!', 'success');
+        showAlert('Excel file exported successfully! Check your Downloads folder.', 'success');
         
     } catch(err) {
         hideSpinner();
