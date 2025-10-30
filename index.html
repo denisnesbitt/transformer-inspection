@@ -3759,16 +3759,30 @@ window.addEventListener('afterprint', () => {
 // === Send via Email Functionality ===
 async function sendViaEmail() {
   try {
-    // Get form data
-    const data = getFormData();
-    const validation = validateFormData();
-    
     // Generate email subject and body
     const transformerId = document.getElementById('transformerId')?.value || 'Unknown';
     const location = document.getElementById('location')?.value || 'Unknown';
     const date = document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0];
     
     const subject = `Transformer Inspection Report - ${transformerId} - ${date}`;
+    
+    // Calculate stats
+    let pass = 0, warning = 0, fail = 0, skip = 0, total = 0;
+    for (let [k, section] of Object.entries(sections)) {
+      const isNA = document.getElementById(`na-${k}`)?.checked;
+      if (isNA) continue;
+      
+      section.items.forEach((item, i) => {
+        total++;
+        const status = getItemStatus(k, i);
+        if (status === 'pass') pass++;
+        else if (status === 'warning') warning++;
+        else if (status === 'fail') fail++;
+        else if (status === 'skip') skip++;
+      });
+    }
+    
+    const completionRate = total > 0 ? Math.round(((pass + warning + fail) / total) * 100) : 0;
     
     // Create formatted email body
     let body = `POWER TRANSFORMER INSPECTION REPORT\n`;
@@ -3780,53 +3794,27 @@ async function sendViaEmail() {
     
     body += `INSPECTION SUMMARY\n`;
     body += `${'-'.repeat(50)}\n`;
-    body += `Completion Rate: ${validation.completionRate}%\n`;
-    body += `Items Completed: ${validation.completedItems}/${validation.totalItems}\n`;
-    body += `Failed Items: ${validation.failedItems}\n`;
+    body += `Completion Rate: ${completionRate}%\n`;
+    body += `Total Items: ${total}\n`;
     body += `Total Photos: ${photoDatabase.length}\n\n`;
-    
-    // Add status counts
-    const stats = {};
-    for (let [k, section] of Object.entries(sections)) {
-      const items = section.i || [];
-      items.forEach(item => {
-        const status = getItemStatus(k, item.id) || 'Not Checked';
-        stats[status] = (stats[status] || 0) + 1;
-      });
-    }
     
     body += `STATUS BREAKDOWN\n`;
     body += `${'-'.repeat(50)}\n`;
-    Object.entries(stats).forEach(([status, count]) => {
-      body += `${status}: ${count}\n`;
-    });
-    body += `\n`;
+    body += `Pass: ${pass}\n`;
+    body += `Warning: ${warning}\n`;
+    body += `Fail: ${fail}\n`;
+    body += `Skip: ${skip}\n\n`;
     
-    // Add warnings and errors if any
-    if (validation.errors.length > 0) {
-      body += `ERRORS (${validation.errors.length})\n`;
-      body += `${'-'.repeat(50)}\n`;
-      validation.errors.forEach(err => body += `• ${err}\n`);
-      body += `\n`;
-    }
-    
-    if (validation.warnings.length > 0) {
-      body += `WARNINGS (${validation.warnings.length})\n`;
-      body += `${'-'.repeat(50)}\n`;
-      validation.warnings.forEach(warn => body += `• ${warn}\n`);
-      body += `\n`;
-    }
-    
-    body += `\nThis is an automated report. Please download the full Excel/PDF report for complete details.\n`;
+    body += `This is an automated report. Please download the full Excel/PDF report for complete details.\n`;
     
     // Check if Web Share API is available (modern browsers, Android)
-    if (navigator.share) {
+    if (navigator.share && navigator.canShare) {
       // Try to generate and share files
       try {
         const filename = `${transformerId.replace(/[^a-zA-Z0-9]/g, '_')}_Inspection_${date}`;
         
         // Show progress
-        showSpinner('Preparing email with attachments...');
+        showEmailSpinner('Preparing email with attachments...');
         
         // Generate Excel file
         const excelBlob = await generateExcelBlob(filename);
@@ -3834,18 +3822,25 @@ async function sendViaEmail() {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
         });
         
-        hideSpinner();
+        hideEmailSpinner();
         
-        // Use Web Share API to share with email apps
-        await navigator.share({
-          title: subject,
-          text: body,
-          files: [excelFile]
-        });
-        
-        showAlert('Email prepared successfully!', 'success');
+        // Check if we can share files
+        if (navigator.canShare({ files: [excelFile] })) {
+          // Use Web Share API to share with email apps
+          await navigator.share({
+            title: subject,
+            text: body,
+            files: [excelFile]
+          });
+          
+          showEmailAlert('Email prepared successfully!', 'success');
+        } else {
+          // Can't share files, fall back to mailto
+          fallbackToMailto(subject, body);
+        }
       } catch (shareError) {
         console.error('Share error:', shareError);
+        hideEmailSpinner();
         // If share fails, fall back to mailto
         fallbackToMailto(subject, body);
       }
@@ -3855,7 +3850,8 @@ async function sendViaEmail() {
     }
   } catch (error) {
     console.error('Error sending email:', error);
-    showAlert('Error preparing email. Please try exporting the file manually.', 'error');
+    hideEmailSpinner();
+    showEmailAlert('Error preparing email. Please try exporting the file manually.', 'error');
   }
 }
 
@@ -3863,34 +3859,63 @@ async function sendViaEmail() {
 async function generateExcelBlob(filename) {
   return new Promise((resolve, reject) => {
     try {
-      const data = getFormData();
       const wb = XLSX.utils.book_new();
+      
+      // Get form data
+      const transformerId = document.getElementById('transformerId')?.value || '';
+      const location = document.getElementById('location')?.value || '';
+      const gpsCoordinates = document.getElementById('gpsCoordinates')?.value || '';
+      const manufacturer = document.getElementById('manufacturer')?.value || '';
+      const rating = document.getElementById('rating')?.value || '';
+      const voltage = document.getElementById('voltage')?.value || '';
+      const coolingType = document.getElementById('coolingType')?.value || '';
+      const oilPreservation = document.getElementById('oilPreservation')?.value || '';
+      const yearManufacture = document.getElementById('yearManufacture')?.value || '';
+      const serialNumber = document.getElementById('serialNumber')?.value || '';
+      const inspectionDate = document.getElementById('inspectionDate')?.value || '';
+      const inspectorName = document.getElementById('inspectorName')?.value || '';
+      
+      // Calculate stats
+      let pass = 0, warning = 0, fail = 0, skip = 0, total = 0;
+      for (let [k, section] of Object.entries(sections)) {
+        const isNA = document.getElementById(`na-${k}`)?.checked;
+        if (isNA) continue;
+        
+        section.items.forEach((item, i) => {
+          total++;
+          const status = getItemStatus(k, i);
+          if (status === 'pass') pass++;
+          else if (status === 'warning') warning++;
+          else if (status === 'fail') fail++;
+          else if (status === 'skip') skip++;
+        });
+      }
       
       // Summary sheet
       const summaryData = [
         ['POWER TRANSFORMER INSPECTION REPORT'],
         [''],
         ['Transformer Information'],
-        ['Transformer ID', data.transformerId || ''],
-        ['Location', data.location || ''],
-        ['GPS Coordinates', data.gpsCoordinates || ''],
-        ['Manufacturer', data.manufacturer || ''],
-        ['Max. MVA', data.rating || ''],
-        ['Voltage Ratio (kV)', data.voltage || ''],
-        ['Cooling Type', data.coolingType || ''],
-        ['Oil Preservation', data.oilPreservation || ''],
-        ['Year of Manufacture', data.yearManufacture || ''],
-        ['Serial Number', data.serialNumber || ''],
-        ['Inspection Date', data.inspectionDate || ''],
-        ['Inspector Name', data.inspectorName || ''],
+        ['Transformer ID', transformerId],
+        ['Location', location],
+        ['GPS Coordinates', gpsCoordinates],
+        ['Manufacturer', manufacturer],
+        ['Max. MVA', rating],
+        ['Voltage Ratio (kV)', voltage],
+        ['Cooling Type', coolingType],
+        ['Oil Preservation', oilPreservation],
+        ['Year of Manufacture', yearManufacture],
+        ['Serial Number', serialNumber],
+        ['Inspection Date', inspectionDate],
+        ['Inspector Name', inspectorName],
         [''],
         ['Inspection Summary'],
-        ['Total Items', getStats().total],
-        ['Passed', getStats().pass],
-        ['Warning', getStats().warning],
-        ['Failed', getStats().fail],
-        ['Skipped', getStats().skip],
-        ['Not Checked', getStats().notChecked]
+        ['Total Items', total],
+        ['Passed', pass],
+        ['Warning', warning],
+        ['Failed', fail],
+        ['Skipped', skip],
+        ['Total Photos', photoDatabase.length]
       ];
       
       const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
@@ -3898,21 +3923,29 @@ async function generateExcelBlob(filename) {
       XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
       
       // Inspection details sheet
-      const detailsData = [['Section', 'Item', 'Status', 'Notes']];
+      const detailsData = [['Section', 'Item', 'Description', 'Status', 'Notes']];
+      let itemCounter = 1;
+      
       for (let [k, section] of Object.entries(sections)) {
-        const items = section.i || [];
-        items.forEach(item => {
+        const isNA = document.getElementById(`na-${k}`)?.checked;
+        
+        section.items.forEach((item, i) => {
+          const status = getItemStatus(k, i);
+          const notesElement = document.getElementById(`nt-${k}-${i}`);
+          const notes = notesElement ? notesElement.value : '';
+          
           detailsData.push([
             section.t,
-            item.t,
-            getItemStatus(k, item.id) || 'Not Checked',
-            getItemNotes(k, item.id) || ''
+            itemCounter++,
+            item,
+            isNA ? 'N/A' : (status || 'skip'),
+            notes
           ]);
         });
       }
       
       const ws2 = XLSX.utils.aoa_to_sheet(detailsData);
-      ws2['!cols'] = [{wch: 30}, {wch: 40}, {wch: 15}, {wch: 50}];
+      ws2['!cols'] = [{wch: 30}, {wch: 8}, {wch: 45}, {wch: 15}, {wch: 50}];
       XLSX.utils.book_append_sheet(wb, ws2, 'Inspection Details');
       
       // Generate blob
@@ -3939,43 +3972,90 @@ function fallbackToMailto(subject, body) {
   // Open mailto link
   window.location.href = mailtoLink;
   
-  showAlert('Email client opened. Note: Please export and attach the Excel/PDF file manually as your browser does not support automatic file attachment.', 'info');
+  showEmailAlert('Email client opened. Note: Attachment not supported - please export and attach the file manually.', 'info');
 }
 
-// Helper function to show alert
-function showAlert(message, type = 'info') {
-  const alertDiv = document.createElement('div');
-  alertDiv.className = type === 'success' ? 'success-alert' : 'alert';
+// Helper function to show email alert
+function showEmailAlert(message, type = 'info') {
+  // Check if alert already exists
+  let alertDiv = document.getElementById('emailAlertBox');
+  
+  if (!alertDiv) {
+    alertDiv = document.createElement('div');
+    alertDiv.id = 'emailAlertBox';
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.left = '50%';
+    alertDiv.style.transform = 'translateX(-50%)';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.maxWidth = '500px';
+    alertDiv.style.padding = '1rem';
+    alertDiv.style.borderRadius = '0.5rem';
+    alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    alertDiv.style.fontWeight = '600';
+    document.body.appendChild(alertDiv);
+  }
+  
+  if (type === 'success') {
+    alertDiv.style.background = '#f0fdf4';
+    alertDiv.style.color = '#166534';
+    alertDiv.style.borderLeft = '4px solid #16a34a';
+  } else if (type === 'error') {
+    alertDiv.style.background = '#fef2f2';
+    alertDiv.style.color = '#991b1b';
+    alertDiv.style.borderLeft = '4px solid #dc2626';
+  } else {
+    alertDiv.style.background = '#eff6ff';
+    alertDiv.style.color = '#1e40af';
+    alertDiv.style.borderLeft = '4px solid #2563eb';
+  }
+  
   alertDiv.textContent = message;
   alertDiv.style.display = 'block';
-  alertDiv.style.position = 'fixed';
-  alertDiv.style.top = '20px';
-  alertDiv.style.left = '50%';
-  alertDiv.style.transform = 'translateX(-50%)';
-  alertDiv.style.zIndex = '9999';
-  alertDiv.style.maxWidth = '500px';
-  alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-  
-  document.body.appendChild(alertDiv);
   
   setTimeout(() => {
     alertDiv.style.display = 'none';
-    document.body.removeChild(alertDiv);
   }, 5000);
 }
 
-// Helper function to show spinner
-function showSpinner(message = 'Processing...') {
-  const spinner = document.querySelector('.spinner');
-  if (spinner) {
-    spinner.textContent = message;
-    spinner.style.display = 'block';
+// Helper function to show email spinner
+function showEmailSpinner(message = 'Processing...') {
+  let spinner = document.getElementById('emailSpinner');
+  
+  if (!spinner) {
+    spinner = document.createElement('div');
+    spinner.id = 'emailSpinner';
+    spinner.style.position = 'fixed';
+    spinner.style.top = '50%';
+    spinner.style.left = '50%';
+    spinner.style.transform = 'translate(-50%, -50%)';
+    spinner.style.background = 'white';
+    spinner.style.padding = '2rem';
+    spinner.style.borderRadius = '0.5rem';
+    spinner.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+    spinner.style.zIndex = '10000';
+    spinner.style.textAlign = 'center';
+    spinner.style.display = 'none';
+    
+    spinner.innerHTML = `
+      <div style="margin-bottom: 1rem; font-weight: 600;" id="emailSpinnerText">${message}</div>
+      <div style="width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+    `;
+    
+    document.body.appendChild(spinner);
   }
+  
+  const textElement = document.getElementById('emailSpinnerText');
+  if (textElement) {
+    textElement.textContent = message;
+  }
+  
+  spinner.style.display = 'block';
 }
 
-// Helper function to hide spinner
-function hideSpinner() {
-  const spinner = document.querySelector('.spinner');
+// Helper function to hide email spinner
+function hideEmailSpinner() {
+  const spinner = document.getElementById('emailSpinner');
   if (spinner) {
     spinner.style.display = 'none';
   }
