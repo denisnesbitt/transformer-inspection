@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <!--
 ╔═══════════════════════════════════════════════════════════════════════╗
-║  POWER TRANSFORMER INSPECTION FORM v0.78                              ║
+║  POWER TRANSFORMER INSPECTION FORM v0.79                              ║
 ║  GitHub Configuration: Search for "const CONFIG" and update          ║
 ║  GITHUB_USERNAME and GITHUB_REPO with your details                   ║
 ║  NEW: One-click "Send via Email" button with file attachment support ║
+║  FIX: Signature restoration no longer distorts on reload             ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Power Transformer Inspection Form v0.78</title>
+    <title>Power Transformer Inspection Form v0.79</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
@@ -2023,7 +2024,10 @@ function setFormData(data) {
             const inspectorCtx = inspectorCanvas.getContext('2d');
             const img = new Image();
             img.onload = function() {
-                inspectorCtx.drawImage(img, 0, 0);
+                // Clear canvas first
+                inspectorCtx.clearRect(0, 0, inspectorCanvas.width, inspectorCanvas.height);
+                // Draw image with canvas dimensions to prevent distortion
+                inspectorCtx.drawImage(img, 0, 0, inspectorCanvas.width, inspectorCanvas.height);
             };
             img.src = signatureState.inspector.canvasData;
             
@@ -2039,7 +2043,10 @@ function setFormData(data) {
             const supervisorCtx = supervisorCanvas.getContext('2d');
             const img = new Image();
             img.onload = function() {
-                supervisorCtx.drawImage(img, 0, 0);
+                // Clear canvas first
+                supervisorCtx.clearRect(0, 0, supervisorCanvas.width, supervisorCanvas.height);
+                // Draw image with canvas dimensions to prevent distortion
+                supervisorCtx.drawImage(img, 0, 0, supervisorCanvas.width, supervisorCanvas.height);
             };
             img.src = signatureState.supervisor.canvasData;
             
