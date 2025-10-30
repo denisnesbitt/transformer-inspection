@@ -1927,7 +1927,7 @@ function getFormData() {
             transformerTemp: document.getElementById('transformerTemp').value,
             weatherConditions: document.getElementById('weatherConditions').value,
             weatherConditionsOther: document.getElementById('weatherConditionsOther').value,
-            inspector: document.getElementById('inspector').value,
+            inspector: document.getElementById('inspector')?.value || '',
             inspectionStandard: document.getElementById('inspectionStandard').value,
             inspectionStandardOther: document.getElementById('inspectionStandardOther').value,
             inspectorDate: document.getElementById('inspectorDate').value,
@@ -2699,13 +2699,12 @@ function validateFormData() {
         {id: 'manufacturer', label: 'Manufacturer'},
         {id: 'status', label: 'Status'},
         {id: 'access', label: 'Access'},
-        {id: 'date', label: 'Inspection Date'},
-        {id: 'inspector', label: 'Inspector Name'}
+        {id: 'date', label: 'Inspection Date'}
     ];
     
     requiredFields.forEach(field => {
-        const value = document.getElementById(field.id).value.trim();
-        if (!value) {
+        const element = document.getElementById(field.id);
+        if (!element || !element.value.trim()) {
             errors.push(`${field.label} is required`);
         }
     });
