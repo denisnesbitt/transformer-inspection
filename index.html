@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <!--
 ╔═══════════════════════════════════════════════════════════════════════╗
-║  POWER TRANSFORMER INSPECTION FORM v0.79                              ║
+║  POWER TRANSFORMER INSPECTION FORM v0.80                              ║
 ║  GitHub Configuration: Search for "const CONFIG" and update          ║
 ║  GITHUB_USERNAME and GITHUB_REPO with your details                   ║
 ║  NEW: One-click "Send via Email" button with file attachment support ║
 ║  FIX: Signature restoration no longer distorts on reload             ║
+║  FIX: Export progress modal can now be closed properly               ║
+║  FIX: Print photo list no longer crashes on missing inspector field  ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Power Transformer Inspection Form v0.79</title>
+    <title>Power Transformer Inspection Form v0.80</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
@@ -2591,7 +2593,7 @@ function printPhotoList() {
     const transformerId = document.getElementById('transformerId').value || 'Unknown';
     const location = document.getElementById('location').value || 'Unknown';
     const date = document.getElementById('date').value || new Date().toISOString().split('T')[0];
-    const inspector = document.getElementById('inspector').value || 'Unknown';
+    const inspector = document.getElementById('inspector')?.value || 'Unknown';
     
     // Create printable HTML
     let printContent = `
@@ -2913,6 +2915,10 @@ function confirmExport() {
     }
     
     exportToExcel(filename);
+}
+
+function closeExportProgress() {
+    document.getElementById('exportProgressModal').classList.remove('active');
 }
 
 
