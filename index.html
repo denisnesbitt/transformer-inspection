@@ -878,23 +878,14 @@
             <div id="naSummaryList"></div>
         </div>
         
-        <div class="photo-section">
-            <h3>Transformer Photos</h3>
-            <div class="photo-buttons">
-                <input type="file" id="photoRatingPlate" accept="image/*" capture="environment" style="display:none;" onchange="handleInfoPhoto(event, 'RatingPlate')">
-                <button class="photo-upload-btn" onclick="document.getElementById('photoRatingPlate').click()">📷 Rating Plate</button>
-                
-                <input type="file" id="photoView1" accept="image/*" capture="environment" style="display:none;" onchange="handleInfoPhoto(event, 'View1')">
-                <button class="photo-upload-btn" onclick="document.getElementById('photoView1').click()">📷 View 1</button>
-                
-                <input type="file" id="photoView2" accept="image/*" capture="environment" style="display:none;" onchange="handleInfoPhoto(event, 'View2')">
-                <button class="photo-upload-btn" onclick="document.getElementById('photoView2').click()">📷 View 2</button>
-            </div>
-            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-                <div id="thumbRatingPlate" class="photo-thumbnails"></div>
-                <div id="thumbView1" class="photo-thumbnails"></div>
-                <div id="thumbView2" class="photo-thumbnails"></div>
-            </div>
+        
+<div class="photo-gallery" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; page-break-after: always;">
+    <div class="photo-item"><img src="images/photo1.jpg" alt="Inspection Photo 1" style="width:100%; border-radius:8px;"></div>
+    <div class="photo-item"><img src="images/photo2.jpg" alt="Inspection Photo 2" style="width:100%; border-radius:8px;"></div>
+    <div class="photo-item"><img src="images/photo3.jpg" alt="Inspection Photo 3" style="width:100%; border-radius:8px;"></div>
+    <div class="photo-item"><img src="images/photo4.jpg" alt="Inspection Photo 4" style="width:100%; border-radius:8px;"></div>
+</div>
+
         </div>
     </div>
 
