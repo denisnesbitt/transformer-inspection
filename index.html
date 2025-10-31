@@ -878,14 +878,23 @@
             <div id="naSummaryList"></div>
         </div>
         
-        
-<div class="photo-gallery" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; page-break-after: always;">
-    <div class="photo-item"><img src="images/photo1.jpg" alt="Inspection Photo 1" style="width:100%; border-radius:8px;"></div>
-    <div class="photo-item"><img src="images/photo2.jpg" alt="Inspection Photo 2" style="width:100%; border-radius:8px;"></div>
-    <div class="photo-item"><img src="images/photo3.jpg" alt="Inspection Photo 3" style="width:100%; border-radius:8px;"></div>
-    <div class="photo-item"><img src="images/photo4.jpg" alt="Inspection Photo 4" style="width:100%; border-radius:8px;"></div>
-</div>
-
+        <div class="photo-section">
+            <h3>Transformer Photos</h3>
+            <div class="photo-buttons">
+                <input type="file" id="photoRatingPlate" accept="image/*" capture="environment" style="display:none;" onchange="handleInfoPhoto(event, 'RatingPlate')">
+                <button class="photo-upload-btn" onclick="document.getElementById('photoRatingPlate').click()">📷 Rating Plate</button>
+                
+                <input type="file" id="photoView1" accept="image/*" capture="environment" style="display:none;" onchange="handleInfoPhoto(event, 'View1')">
+                <button class="photo-upload-btn" onclick="document.getElementById('photoView1').click()">📷 View 1</button>
+                
+                <input type="file" id="photoView2" accept="image/*" capture="environment" style="display:none;" onchange="handleInfoPhoto(event, 'View2')">
+                <button class="photo-upload-btn" onclick="document.getElementById('photoView2').click()">📷 View 2</button>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                <div id="thumbRatingPlate" class="photo-thumbnails"></div>
+                <div id="thumbView1" class="photo-thumbnails"></div>
+                <div id="thumbView2" class="photo-thumbnails"></div>
+            </div>
         </div>
     </div>
 
@@ -4609,5 +4618,92 @@ function hideEmailSpinner() {
   </div>
 </div>
 
+
+<div class="photo-gallery" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;page-break-after:always;"></div>
+
+<script>
+(function(){
+  var galleryImages = [];
+
+  function sectionNameFor(input){
+    var el = input;
+    while (el && el !== document.body){
+      var h = el.querySelector && (el.querySelector('h2, h3, .section-header .title, .section-header, .title-area') );
+      if (h && h.textContent && h.textContent.trim()){
+        return h.textContent.trim().replace(/\s+/g,' ').replace(/\u00A0/g,' ');
+      }
+      el = el.parentNode;
+    }
+    return 'Transformer Information';
+  }
+
+  function addPreview(input, dataUrl, label){
+    var root = input;
+    while (root && root !== document.body){
+      var thumbs = root.querySelector && root.querySelector('.photo-thumbnails');
+      if (thumbs){
+        var div = document.createElement('div');
+        div.className = 'photo-thumb';
+        div.innerHTML = '<img src="'+dataUrl+'" alt="'+label+'">';
+        thumbs.appendChild(div);
+        return;
+      }
+      root = root.parentNode;
+    }
+  }
+
+  function updateGallery(){
+    var container = document.querySelector('.photo-gallery');
+    if (!container) return;
+    container.innerHTML = '';
+    for (var i=0;i<galleryImages.length;i++){
+      var g = galleryImages[i];
+      var wrap = document.createElement('div');
+      wrap.className = 'photo-item';
+      var caption = g.section + ' – Photo ' + (i+1);
+      wrap.innerHTML =
+        '<img src="'+g.src+'" alt="'+caption+'" style="width:100%;border-radius:8px;">' +
+        '<p style="text-align:center;font-size:0.8rem;margin-top:4px;">'+caption+'</p>';
+      container.appendChild(wrap);
+      // Insert a soft page break every 4 images by toggling page-break-after on the last image of each group
+      if ((i+1) % 4 === 0){
+        var br = document.createElement('div');
+        br.style.pageBreakAfter = 'always';
+        container.appendChild(br);
+      }
+    }
+  }
+
+  function handleFile(e){
+    var input = e.target;
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    var sec = sectionNameFor(input);
+    reader.onload = function(ev){
+      var dataUrl = ev.target.result;
+      addPreview(input, dataUrl, sec);
+      galleryImages.push({ src: dataUrl, section: sec });
+      updateGallery();
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+
+  function attach(){
+    var inputs = document.querySelectorAll('input[type="file"][accept*="image"]');
+    for (var i=0;i<inputs.length;i++){
+      if (!inputs[i].__galleryHooked){
+        inputs[i].addEventListener('change', handleFile, false);
+        inputs[i].__galleryHooked = true;
+      }
+    }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();
+</script>
 </body>
 </html>
